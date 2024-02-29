@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
-#include <string.h>
 #include <netdb.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -16,13 +15,9 @@
 
 #include <iostream>
 #include <string>
-
-std::string waitForInput() {
-    std::string input;
-    std::cout << "Enter a command: ";
-    std::getline(std::cin, input); // Wait for user input
-    return input;
-}
+#include <vector>
+#include <bits/stdc++.h>
+#include <sstream>
 
 
 #define PORT "3490" // the port client will be connecting to 
@@ -60,39 +55,59 @@ void print_help(const char *msg)
     printf("%s%s%s", YELLOW, msg, END);
 }
 
+std::string waitForInput() {
+    std::string input;
+    std::cout << "Enter a command: ";
+    std::getline(std::cin, input); // Wait for user input
+    return input;
+}
+
 int main(int argc, char *argv[])
 {
     int sockfd, numbytes;  
     char buf[MAXDATASIZE];
     struct addrinfo hints, *servinfo, *p;
     int rv;
+    std::string test;
     char s[INET6_ADDRSTRLEN];
+    std::vector<std::string> stringVector;
+    const char *charPtr;
 
     while(true)
     {
-    std::string userInput = waitForInput();
-    std::cout << "You entered: " << userInput << std::endl;
-    size_t found = userInput.find("CONNECT");
-  if (found == 0)
-    if (found) {
-        std::cout << "CONNECTING TO SERVER" << std::endl;
-        break;
+        std::string userInput = waitForInput();
+        std::stringstream ss(userInput);
+        std::cout << "You entered: " << userInput << std::endl;
+        size_t found = userInput.find("CONNECT");
+        if (found == 0)
+        {
+         while (getline(ss, test, ' ')) {
+ 
+        // store token string in the vector
+        stringVector.push_back(test);
     }
+    // print the vector
+    // for (int i = 0; i < stringVector.size(); i++) {
+    //     std::cout << stringVector[i] << std::endl;
+    // }
+
+        break;
+        }
     }
     
-    if (argc != 2) {
+    if (stringVector.size() != 3) {
         print_err("Error: ");
-        printf( "Invalid input arguments\n");
-        printf("Expected number of input arguments is 2. Received input argument number is %d\n", argc);
-        fprintf(stderr,"Usage: <client> <hostname>\n%sFor example: %s./client localhost\n",YELLOW, END);
+        printf( "Invalid cmd arguments\n");
+        printf("Expected number of cmd arguments is 2. Received cmd argument number is %d\n", stringVector.size());
+        fprintf(stderr,"Usage: CONNECT <port> <hostname>. For example: CONNECT 3490 localhost \n%s",YELLOW, END);
         exit(1);
     }
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-
-    if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
+    charPtr = stringVector[2].c_str();
+    if ((rv = getaddrinfo(charPtr, PORT, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
