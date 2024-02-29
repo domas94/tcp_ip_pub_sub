@@ -14,6 +14,17 @@
 
 #include <arpa/inet.h>
 
+#include <iostream>
+#include <string>
+
+std::string waitForInput() {
+    std::string input;
+    std::cout << "Enter a command: ";
+    std::getline(std::cin, input); // Wait for user input
+    return input;
+}
+
+
 #define PORT "3490" // the port client will be connecting to 
 
 // colored print outputs
@@ -57,6 +68,18 @@ int main(int argc, char *argv[])
     int rv;
     char s[INET6_ADDRSTRLEN];
 
+    while(true)
+    {
+    std::string userInput = waitForInput();
+    std::cout << "You entered: " << userInput << std::endl;
+    size_t found = userInput.find("CONNECT");
+  if (found == 0)
+    if (found) {
+        std::cout << "CONNECTING TO SERVER" << std::endl;
+        break;
+    }
+    }
+    
     if (argc != 2) {
         print_err("Error: ");
         printf( "Invalid input arguments\n");
