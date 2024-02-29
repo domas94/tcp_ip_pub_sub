@@ -71,7 +71,8 @@ int main(int argc, char *argv[])
     std::string test;
     char s[INET6_ADDRSTRLEN];
     std::vector<std::string> stringVector;
-    const char *charPtr;
+    const char *hostname;
+    const char *port;
 
     while(true)
     {
@@ -106,8 +107,9 @@ int main(int argc, char *argv[])
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    charPtr = stringVector[2].c_str();
-    if ((rv = getaddrinfo(charPtr, PORT, &hints, &servinfo)) != 0) {
+    hostname = stringVector[2].c_str();
+    port = stringVector[1].c_str();
+    if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
