@@ -57,10 +57,10 @@ void print_help(const char *msg)
     printf("%s%s%s", YELLOW, msg, END);
 }
 
-string waitForInput()
+string waitForInput(const char * text)
 {
     string input;
-    cout << "Enter a command: ";
+    cout << text;
     getline(cin, input); // Wait for user input
     return input;
 }
@@ -79,9 +79,8 @@ int main(int argc, char *argv[])
 
     while (true)
     {
-        string userInput = waitForInput();
+        string userInput = waitForInput("Enter a command: ");
         stringstream ss(userInput);
-        cout << "You entered: " << userInput << endl;
         size_t found = userInput.find("CONNECT");
         if (found == 0)
         {
@@ -98,6 +97,10 @@ int main(int argc, char *argv[])
 
             break;
         }
+        else{
+            print_err("Invalid input!\n");
+            print_help("Help: CONNECT <port> <hostname>.\nExample: CONNECT 3490 localhost\n");
+        }
     }
 
     if (stringVector.size() != 3)
@@ -105,7 +108,7 @@ int main(int argc, char *argv[])
         print_err("Error: ");
         printf("Invalid cmd arguments\n");
         printf("Expected number of cmd arguments is 2. Received cmd argument number is %d\n", stringVector.size());
-        fprintf(stderr, "Usage: CONNECT <port> <hostname>. For example: CONNECT 3490 localhost \n%s", YELLOW, END);
+        fprintf(stderr, "%sHelp:%s CONNECT <port> <hostname>. Example: CONNECT 3490 localhost \n", YELLOW, END);
         exit(1);
     }
 
@@ -116,7 +119,7 @@ int main(int argc, char *argv[])
     port = stringVector[1].c_str();
     if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0)
     {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        fprintf(stderr, "%sgetaddrinfo:%s %s\n",RED, END,gai_strerror(rv));
         return 1;
     }
 
@@ -153,7 +156,7 @@ int main(int argc, char *argv[])
     freeaddrinfo(servinfo); // all done with this structure
     while (true)
     {
-        string userInput = waitForInput();
+        string userInput = waitForInput("Enter server message: ");
         if (send(sockfd, &userInput[0], userInput.size(), 0) == -1)
             perror("send");
 
@@ -165,7 +168,7 @@ int main(int argc, char *argv[])
 
         buf[numbytes] = '\0';
 
-        printf("client: received '%s'\n", buf);
+        printf("client: received '%s%s%s'\n", GREEN, buf, END);
 
         char substr[] = "DISCONNECT";
         char *result = strstr(buf, substr);
@@ -174,6 +177,7 @@ int main(int argc, char *argv[])
             break;
         }
     }
+    print_success("Closing client application");
     close(sockfd);
 
     return 0;

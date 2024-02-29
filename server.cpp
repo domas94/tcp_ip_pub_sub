@@ -15,10 +15,31 @@
 #include <sys/wait.h>
 #include <signal.h>
 
+// colored print outputs
+#define RED "\033[31m"
+#define GREEN "\033[32m"
+#define YELLOW "\033[33m"
+#define END "\033[0m"
+
 #define PORT "3490" // the port users will be connecting to
 
 #define BACKLOG 10 // how many pending connections queue will hold
 #define MAXDATASIZE 100
+
+void print_err(const char *msg)
+{
+    printf("%s%s%s", RED, msg, END);
+}
+
+void print_success(const char *msg)
+{
+    printf("%s%s%s", GREEN, msg, END);
+}
+
+void print_help(const char *msg)
+{
+    printf("%s%s%s", YELLOW, msg, END);
+}
 
 void sigchld_handler(int s)
 {
@@ -135,7 +156,7 @@ int main(void)
         // child process
         if (!fork())
         {
-            printf("Fork success\n");
+            print_success("Fork success\n");
             while (true)
             {
                 if ((numbytes = recv(new_fd, buf, MAXDATASIZE - 1, 0)) == -1)
@@ -145,7 +166,12 @@ int main(void)
                 }
 
                 buf[numbytes] = '\0';
-                printf("server: received '%s'\n", buf);
+                printf("server: received '%s%s%s'\n", GREEN, buf, END);
+                if (strlen(buf) == 0)
+                {
+                    print_err("Empty message received, closing connection\n");
+                    break;
+                }
                 char substr[] = "DISCONNECT";
                 char *result = strstr(buf, substr);
                 if (result != NULL)
@@ -155,7 +181,7 @@ int main(void)
 
                         perror("send");
                     }
-                    printf("Ending child process\n");
+                    print_success("Closing connection\n");
                     break;
                 }
                 else
@@ -167,7 +193,7 @@ int main(void)
         }
         else
         {
-            printf("Fork fail\n");
+            print_err("Fork fail\n");
         }
         printf("Closing fd %d\n", new_fd);
         close(new_fd); // parent doesn't need this
