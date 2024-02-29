@@ -30,6 +30,8 @@
 
 #define MAXDATASIZE 100 // max number of bytes we can get at once 
 
+using namespace std;
+
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -55,10 +57,10 @@ void print_help(const char *msg)
     printf("%s%s%s", YELLOW, msg, END);
 }
 
-std::string waitForInput() {
-    std::string input;
-    std::cout << "Enter a command: ";
-    std::getline(std::cin, input); // Wait for user input
+string waitForInput() {
+    string input;
+    cout << "Enter a command: ";
+    getline(cin, input); // Wait for user input
     return input;
 }
 
@@ -68,17 +70,17 @@ int main(int argc, char *argv[])
     char buf[MAXDATASIZE];
     struct addrinfo hints, *servinfo, *p;
     int rv;
-    std::string test;
+    string test;
     char s[INET6_ADDRSTRLEN];
-    std::vector<std::string> stringVector;
+    vector<string> stringVector;
     const char *hostname;
     const char *port;
 
     while(true)
     {
-        std::string userInput = waitForInput();
-        std::stringstream ss(userInput);
-        std::cout << "You entered: " << userInput << std::endl;
+        string userInput = waitForInput();
+        stringstream ss(userInput);
+        cout << "You entered: " << userInput << endl;
         size_t found = userInput.find("CONNECT");
         if (found == 0)
         {
@@ -89,7 +91,7 @@ int main(int argc, char *argv[])
     }
     // print the vector
     // for (int i = 0; i < stringVector.size(); i++) {
-    //     std::cout << stringVector[i] << std::endl;
+    //     cout << stringVector[i] << endl;
     // }
 
         break;
@@ -141,16 +143,21 @@ int main(int argc, char *argv[])
     printf("client: connecting to %s\n", s);
 
     freeaddrinfo(servinfo); // all done with this structure
+    while(true)
+    {
+    string userInput = waitForInput();
+     if (send(sockfd, &userInput[0], userInput.size(), 0) == -1)
+                perror("send");
 
-    if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
-        perror("recv");
-        exit(1);
+    // if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+    //     perror("recv");
+    //     exit(1);
+    // }
+
+    // buf[numbytes] = '\0';
+
+    // printf("client: received '%s'\n",buf);
     }
-
-    buf[numbytes] = '\0';
-
-    printf("client: received '%s'\n",buf);
-
     close(sockfd);
 
     return 0;
