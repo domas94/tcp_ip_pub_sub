@@ -76,6 +76,7 @@ int main(int argc, char *argv[])
     vector<string> stringVector;
     const char *hostname;
     const char *port;
+    string userInput;
 
     while (true)
     {

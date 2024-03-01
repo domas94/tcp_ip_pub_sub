@@ -26,6 +26,25 @@
 #define BACKLOG 10 // how many pending connections queue will hold
 #define MAXDATASIZE 100
 
+struct Pair
+{
+    int pid;
+    int topic_size;
+    char **topics;
+};
+
+struct Pair *findPid(struct Pair *arr, int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        if (arr[i].pid == 5)
+        {
+            return &arr[i];
+        }
+    }
+    return NULL; // Return NULL if num 5 is not found
+}
+
 void print_err(const char *msg)
 {
     printf("%s%s%s\n", RED, msg, END);
@@ -77,8 +96,42 @@ int main(void)
     char buf[MAXDATASIZE];
     char disconnect[] = "DISCONNECT";
     char publish[] = "PUBLISH";
-    char *result;
+    char *str_equal;
     int pid;
+    struct Pair *client_pairs = NULL;
+    int size = 0;
+    client_pairs = (Pair *)malloc(sizeof(struct Pair) * size);
+    char ** topics;
+    if (client_pairs == NULL)
+    {
+        fprintf(stderr, "Memory allocation failed\n");
+        return 1;
+    }
+    size++;
+
+    client_pairs[size - 1].topics = (char **)malloc(sizeof(char *) * 1); // Allocate memory for one string
+    if (client_pairs[size - 1].topics == NULL)
+    {
+        fprintf(stderr, "Memory allocation failed\n");
+        free(client_pairs);
+        return 1;
+    }
+
+    client_pairs[size - 1].topics[size - 1] = (char *)malloc(strlen("random string") + 1); // Allocate memory for the string
+    if (client_pairs[0].topics[0] == NULL)
+    {
+        fprintf(stderr, "Memory allocation failed\n");
+        free(client_pairs[0].topics);
+        free(client_pairs);
+        exit(1);
+    }
+    strcpy(client_pairs[size - 1].topics[size - 1], "random string");
+    client_pairs[size - 1].topic_size = 0;
+    // printf("[%d, \"%s\"]\n", client_pairs[size - 1].pid, client_pairs[size - 1].topics[size - 1]);
+
+    // free(client_pairs[0].topics[0]);
+    // free(client_pairs[0].topics);
+    // free(client_pairs);
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -153,21 +206,20 @@ int main(void)
             perror("accept");
             continue;
         }
-        inet_ntop(their_addr.ss_family,
-                  get_in_addr((struct sockaddr *)&their_addr),
-                  s, sizeof s);
+        inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
         printf("server: got connection from %s\n", s);
         // child process
         int retval = fork();
-        if(retval != 0){
+        if (retval != 0)
+        {
             pid = retval;
         }
         if (!retval)
         {
             print_success("Fork success");
+            client_pairs[size - 1].pid = pid;
             while (true)
-            {   
-                int local_pid = pid;
+            {
                 if ((numbytes = recv(new_fd, buf, MAXDATASIZE - 1, 0)) == -1)
                 {
                     perror("recv");
@@ -175,14 +227,14 @@ int main(void)
                 }
 
                 buf[numbytes] = '\0';
-                printf("%d server: received '%s%s%s'\n", local_pid, GREEN, buf, END);
+                printf("%d server: received '%s%s%s'\n", client_pairs[size - 1].pid, GREEN, buf, END);
                 if (strlen(buf) == 0)
                 {
                     print_err("Empty message received, closing connection\n");
                     break;
                 }
-                result = strstr(buf, disconnect);
-                if (result != NULL)
+                str_equal = strstr(buf, disconnect);
+                if (str_equal != NULL)
                 {
                     if (send(new_fd, "DISCONNECT", 10, 0) == -1)
                     {
@@ -193,9 +245,48 @@ int main(void)
                     break;
                 }
 
-                result = strstr(buf, publish);
-                if (result != NULL)
-                {  
+                str_equal = strstr(buf, publish);
+                if (str_equal != NULL)
+                {
+
+                    char *token;
+                    char *strings[2];
+
+                    token = strtok(buf + strlen("PUBLISH") + 1, " ");
+                    if (token != NULL)
+                    {
+                        strings[0] = strdup(token);
+                        token = strtok(NULL, " ");
+                        if (token != NULL)
+                        {
+                            strings[1] = strdup(token);
+                            // Print the extracted strings
+
+                            client_pairs[size - 1].topics = (char **)realloc(client_pairs[size - 1].topics, sizeof(char *) * client_pairs[size - 1].topic_size + 1); // Allocate memory for one string
+                            client_pairs[size - 1].topic_size++;
+                            if (client_pairs[size - 1].topics == NULL)
+                            {
+                                fprintf(stderr, "Memory allocation failed\n");
+                                free(client_pairs);
+                                return 1;
+                            }
+
+                            client_pairs[size - 1].topics[client_pairs[size - 1].topic_size - 1] = (char *)realloc(client_pairs[size - 1].topics[client_pairs[size - 1].topic_size - 1], strlen(strings[0]) + 1); // Allocate memory for the string
+                            if (client_pairs[size - 1].topics[client_pairs[size - 1].topic_size - 1] == NULL)
+                            {
+                                fprintf(stderr, "Memory allocation failed\n");
+                                free(client_pairs[0].topics);
+                                free(client_pairs);
+                                exit(1);
+                            }
+                            strcpy(client_pairs[size - 1].topics[client_pairs[size - 1].topic_size - 1], strings[0]);
+                            //printf("[%d, \"%s\" %s]\n", client_pairs[size - 1].pid, client_pairs[size - 1].topics[size - 1], client_pairs[size - 1].topics[size]);
+
+                            // Remember to free memory allocated by strdup
+                            free(strings[0]);
+                            free(strings[1]);
+                        }
+                    }
                 }
                 if (send(new_fd, buf, strlen(buf), 0) == -1)
                     perror("send");
