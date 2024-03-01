@@ -28,17 +28,17 @@
 
 void print_err(const char *msg)
 {
-    printf("%s%s%s", RED, msg, END);
+    printf("%s%s%s\n", RED, msg, END);
 }
 
 void print_success(const char *msg)
 {
-    printf("%s%s%s", GREEN, msg, END);
+    printf("%s%s%s\n", GREEN, msg, END);
 }
 
 void print_help(const char *msg)
 {
-    printf("%s%s%s", YELLOW, msg, END);
+    printf("%s%s%s\n", YELLOW, msg, END);
 }
 
 void sigchld_handler(int s)
@@ -75,6 +75,10 @@ int main(void)
     int rv;
     int numbytes;
     char buf[MAXDATASIZE];
+    char disconnect[] = "DISCONNECT";
+    char publish[] = "PUBLISH";
+    char *result;
+    int pid;
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -154,11 +158,16 @@ int main(void)
                   s, sizeof s);
         printf("server: got connection from %s\n", s);
         // child process
-        if (!fork())
+        int retval = fork();
+        if(retval != 0){
+            pid = retval;
+        }
+        if (!retval)
         {
-            print_success("Fork success\n");
+            print_success("Fork success");
             while (true)
-            {
+            {   
+                int local_pid = pid;
                 if ((numbytes = recv(new_fd, buf, MAXDATASIZE - 1, 0)) == -1)
                 {
                     perror("recv");
@@ -166,14 +175,13 @@ int main(void)
                 }
 
                 buf[numbytes] = '\0';
-                printf("server: received '%s%s%s'\n", GREEN, buf, END);
+                printf("%d server: received '%s%s%s'\n", local_pid, GREEN, buf, END);
                 if (strlen(buf) == 0)
                 {
                     print_err("Empty message received, closing connection\n");
                     break;
                 }
-                char substr[] = "DISCONNECT";
-                char *result = strstr(buf, substr);
+                result = strstr(buf, disconnect);
                 if (result != NULL)
                 {
                     if (send(new_fd, "DISCONNECT", 10, 0) == -1)
@@ -181,19 +189,21 @@ int main(void)
 
                         perror("send");
                     }
-                    print_success("Closing connection\n");
+                    print_success("Closing connection");
                     break;
                 }
-                else
-                {
-                    if (send(new_fd, buf, strlen(buf), 0) == -1)
-                        perror("send");
+
+                result = strstr(buf, publish);
+                if (result != NULL)
+                {  
                 }
+                if (send(new_fd, buf, strlen(buf), 0) == -1)
+                    perror("send");
             }
         }
         else
         {
-            print_err("Fork fail\n");
+            print_err("Fork fail");
         }
         printf("Closing fd %d\n", new_fd);
         close(new_fd); // parent doesn't need this
