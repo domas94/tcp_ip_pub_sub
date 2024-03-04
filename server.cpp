@@ -26,14 +26,16 @@
 #define BACKLOG 10 // how many pending connections queue will hold
 #define MAXDATASIZE 100
 
-struct Pair
+//////////////////////// STRUCT
+struct ClientTopics
 {
     int pid;
-    int topic_size;
+    int topic_size = 0;
     char **topics;
 };
 
-struct Pair *findPid(struct Pair *arr, int size)
+//////////////////////// FUNC
+struct ClientTopics *findPid(struct ClientTopics *arr, int size)
 {
     for (int i = 0; i < size; i++)
     {
@@ -60,6 +62,30 @@ void print_help(const char *msg)
     printf("%s%s%s\n", YELLOW, msg, END);
 }
 
+void client_disconnect(char *str_equal, int new_fd)
+{
+    if (str_equal != NULL)
+    {
+        if (send(new_fd, "DISCONNECT", 10, 0) == -1)
+        {
+
+            perror("send");
+        }
+        print_success("Closing connection");
+    }
+}
+
+int check_message_len(char *buf)
+{
+    if (strlen(buf) == 0)
+    {
+        print_err("Empty message received, closing connection\n");
+        return 1;
+    }
+    return 0;
+}
+
+//////////////////////// TCP IP FUNC
 void sigchld_handler(int s)
 {
     // waitpid() might overwrite errno, so we save and restore it:
@@ -84,6 +110,7 @@ void *get_in_addr(struct sockaddr *sa)
 
 int main(void)
 {
+    // TCP IP vars
     int sockfd, new_fd; // listen on sock_fd, new connection on new_fd
     struct addrinfo hints, *servinfo, *p;
     struct sockaddr_storage their_addr; // connector's address information
@@ -94,44 +121,31 @@ int main(void)
     int rv;
     int numbytes;
     char buf[MAXDATASIZE];
+
+    // CLIENT COMMANDS
     char disconnect[] = "DISCONNECT";
     char publish[] = "PUBLISH";
+
+    // when comparing client message with command
     char *str_equal;
+
+    // process pid
     int pid;
-    struct Pair *client_pairs = NULL;
-    int size = 0;
-    client_pairs = (Pair *)malloc(sizeof(struct Pair) * size);
-    char ** topics;
+
+    // struct array init
+    struct ClientTopics *client_pairs = NULL;
+
+    // struct array size
+    int client_topic_arr_size = 0;
+
+    // malloc for Client topic struct
+    client_pairs = (ClientTopics *)malloc(sizeof(struct ClientTopics));
     if (client_pairs == NULL)
     {
         fprintf(stderr, "Memory allocation failed\n");
         return 1;
     }
-    size++;
-
-    client_pairs[size - 1].topics = (char **)malloc(sizeof(char *) * 1); // Allocate memory for one string
-    if (client_pairs[size - 1].topics == NULL)
-    {
-        fprintf(stderr, "Memory allocation failed\n");
-        free(client_pairs);
-        return 1;
-    }
-
-    client_pairs[size - 1].topics[size - 1] = (char *)malloc(strlen("random string") + 1); // Allocate memory for the string
-    if (client_pairs[0].topics[0] == NULL)
-    {
-        fprintf(stderr, "Memory allocation failed\n");
-        free(client_pairs[0].topics);
-        free(client_pairs);
-        exit(1);
-    }
-    strcpy(client_pairs[size - 1].topics[size - 1], "random string");
-    client_pairs[size - 1].topic_size = 0;
-    // printf("[%d, \"%s\"]\n", client_pairs[size - 1].pid, client_pairs[size - 1].topics[size - 1]);
-
-    // free(client_pairs[0].topics[0]);
-    // free(client_pairs[0].topics);
-    // free(client_pairs);
+    client_topic_arr_size++;
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -212,12 +226,14 @@ int main(void)
         int retval = fork();
         if (retval != 0)
         {
+            // set pid for the new client when it connects
             pid = retval;
         }
         if (!retval)
         {
             print_success("Fork success");
-            client_pairs[size - 1].pid = pid;
+            // set pid for the new client
+            client_pairs[client_topic_arr_size - 1].pid = pid;
             while (true)
             {
                 if ((numbytes = recv(new_fd, buf, MAXDATASIZE - 1, 0)) == -1)
@@ -227,7 +243,7 @@ int main(void)
                 }
 
                 buf[numbytes] = '\0';
-                printf("%d server: received '%s%s%s'\n", client_pairs[size - 1].pid, GREEN, buf, END);
+                printf("%d server: received '%s%s%s'\n", client_pairs[client_topic_arr_size - 1].pid, GREEN, buf, END);
                 if (strlen(buf) == 0)
                 {
                     print_err("Empty message received, closing connection\n");
@@ -243,63 +259,66 @@ int main(void)
                     }
                     print_success("Closing connection");
                     break;
-                }
+}
 
-                str_equal = strstr(buf, publish);
-                if (str_equal != NULL)
-                {
-
-                    char *token;
-                    char *strings[2];
-
-                    token = strtok(buf + strlen("PUBLISH") + 1, " ");
-                    if (token != NULL)
+                    str_equal = strstr(buf, publish);
+                    if (str_equal != NULL)
                     {
-                        strings[0] = strdup(token);
-                        token = strtok(NULL, " ");
+
+                        char *token;
+                        char *strings[2];
+
+                        token = strtok(buf + strlen("PUBLISH") + 1, " ");
                         if (token != NULL)
                         {
-                            strings[1] = strdup(token);
-                            // Print the extracted strings
-
-                            client_pairs[size - 1].topics = (char **)realloc(client_pairs[size - 1].topics, sizeof(char *) * client_pairs[size - 1].topic_size + 1); // Allocate memory for one string
-                            client_pairs[size - 1].topic_size++;
-                            if (client_pairs[size - 1].topics == NULL)
+                            strings[0] = strdup(token);
+                            token = strtok(NULL, " ");
+                            if (token != NULL)
                             {
-                                fprintf(stderr, "Memory allocation failed\n");
-                                free(client_pairs);
-                                return 1;
-                            }
+                                strings[1] = strdup(token);
+                                // Print the extracted strings
 
-                            client_pairs[size - 1].topics[client_pairs[size - 1].topic_size - 1] = (char *)realloc(client_pairs[size - 1].topics[client_pairs[size - 1].topic_size - 1], strlen(strings[0]) + 1); // Allocate memory for the string
-                            if (client_pairs[size - 1].topics[client_pairs[size - 1].topic_size - 1] == NULL)
-                            {
-                                fprintf(stderr, "Memory allocation failed\n");
-                                free(client_pairs[0].topics);
-                                free(client_pairs);
-                                exit(1);
-                            }
-                            strcpy(client_pairs[size - 1].topics[client_pairs[size - 1].topic_size - 1], strings[0]);
-                            //printf("[%d, \"%s\" %s]\n", client_pairs[size - 1].pid, client_pairs[size - 1].topics[size - 1], client_pairs[size - 1].topics[size]);
+                                client_pairs[client_topic_arr_size - 1].topics = (char **)realloc(client_pairs[client_topic_arr_size - 1].topics, sizeof(char *) * client_pairs[client_topic_arr_size - 1].topic_size + 1); // Allocate memory for one string
+                                client_pairs[client_topic_arr_size - 1].topic_size++;
+                                if (client_pairs[client_topic_arr_size - 1].topics == NULL)
+                                {
+                                    fprintf(stderr, "Memory allocation failed\n");
+                                    free(client_pairs);
+                                    return 1;
+                                }
 
-                            // Remember to free memory allocated by strdup
-                            free(strings[0]);
-                            free(strings[1]);
+                                client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1] = (char *)realloc(client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1], strlen(strings[0]) + 1); // Allocate memory for the string
+                                if (client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1] == NULL)
+                                {
+                                    fprintf(stderr, "Memory allocation failed\n");
+                                    free(client_pairs[client_topic_arr_size - 1].topics);
+                                    free(client_pairs);
+                                    exit(1);
+                                }
+                                strcpy(client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1], strings[0]);
+                                printf("[%d, \"%s\", \"%s\"]\n", client_pairs[0].pid, client_pairs[0].topics[0], client_pairs[0].topics[1]);
+
+                                // Remember to free memory allocated by strdup
+                                free(strings[0]);
+                                free(strings[1]);
+                            }
                         }
                     }
+                    if (send(new_fd, buf, strlen(buf), 0) == -1)
+                        perror("send");
                 }
-                if (send(new_fd, buf, strlen(buf), 0) == -1)
-                    perror("send");
             }
+            else
+            {
+                print_err("Fork fail");
+            }
+            printf("Closing fd %d\n", new_fd);
+            close(new_fd); // parent doesn't need this
         }
-        else
-        {
-            print_err("Fork fail");
-        }
-        printf("Closing fd %d\n", new_fd);
-        close(new_fd); // parent doesn't need this
+        printf("Closing sockfd %d\n", sockfd);
+        close(sockfd); // child doesn't need the listener
+        // free(client_pairs[0].topics[0]);
+        // free(client_pairs[0].topics);
+        // free(client_pairs);
+        return 0;
     }
-    printf("Closing sockfd %d\n", sockfd);
-    close(sockfd); // child doesn't need the listener
-    return 0;
-}
