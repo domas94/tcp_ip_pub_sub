@@ -137,8 +137,6 @@ int main(void)
     // struct array init
     struct ClientTopics *client_pairs = NULL;
 
-    // struct array size
-    int client_topic_arr_size = 0;
 
     // malloc for Client topic struct
     client_pairs = (ClientTopics *)malloc(sizeof(struct ClientTopics));
@@ -147,7 +145,6 @@ int main(void)
         fprintf(stderr, "Memory allocation failed\n");
         return 1;
     }
-    client_topic_arr_size++;
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -235,7 +232,7 @@ int main(void)
         {
             print_success("Fork success");
             // set pid for the new client
-            client_pairs[client_topic_arr_size - 1].pid = pid;
+            client_pairs[0].pid = pid;
             while (true)
             {
                 if ((numbytes = recv(new_fd, buf, MAXDATASIZE - 1, 0)) == -1)
@@ -245,7 +242,7 @@ int main(void)
                 }
 
                 buf[numbytes] = '\0';
-                printf("%d server: received '%s%s%s'\n", client_pairs[client_topic_arr_size - 1].pid, GREEN, buf, END);
+                printf("%d server: received '%s%s%s'\n", client_pairs[0].pid, GREEN, buf, END);
                 if (strlen(buf) == 0)
                 {
                     print_err("Empty message received, closing connection\n");
@@ -279,9 +276,9 @@ int main(void)
                         if (token != NULL)
                         {
                             data[1] = strdup(token);
-                            for (int i = 0; i < client_pairs[client_topic_arr_size - 1].topic_size; i++)
+                            for (int i = 0; i < client_pairs[0].topic_size; i++)
                             {
-                                if (strcmp(client_pairs[client_topic_arr_size - 1].topics[i], data[0]) == 0)
+                                if (strcmp(client_pairs[0].topics[i], data[0]) == 0)
                                 {
                                     strcpy(buf_cpy, data[1]);
                                 }
@@ -305,27 +302,27 @@ int main(void)
                     {
                         data[0] = strdup(token);
 
-                        client_pairs[client_topic_arr_size - 1].topics = (char **)realloc(client_pairs[client_topic_arr_size - 1].topics, sizeof(char *) * client_pairs[client_topic_arr_size - 1].topic_size + 1); // Allocate memory for one string
-                        client_pairs[client_topic_arr_size - 1].topic_size++;
-                        if (client_pairs[client_topic_arr_size - 1].topics == NULL)
+                        client_pairs[0].topics = (char **)realloc(client_pairs[0].topics, sizeof(char *) * client_pairs[0].topic_size + 1); // Allocate memory for one string
+                        client_pairs[0].topic_size++;
+                        if (client_pairs[0].topics == NULL)
                         {
                             fprintf(stderr, "Memory allocation failed\n");
                             free(client_pairs);
                             return 1;
                         }
 
-                        client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1] = (char *)realloc(client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1], strlen(data[0]) + 1); // Allocate memory for the string
-                        if (client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1] == NULL)
+                        client_pairs[0].topics[client_pairs[0].topic_size - 1] = (char *)realloc(client_pairs[0].topics[client_pairs[0].topic_size - 1], strlen(data[0]) + 1); // Allocate memory for the string
+                        if (client_pairs[0].topics[client_pairs[0].topic_size - 1] == NULL)
                         {
                             fprintf(stderr, "Memory allocation failed\n");
-                            free(client_pairs[client_topic_arr_size - 1].topics);
+                            free(client_pairs[0].topics);
                             free(client_pairs);
                             exit(1);
                         }
-                        strcpy(client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1], data[0]);
+                        strcpy(client_pairs[0].topics[client_pairs[0].topic_size - 1], data[0]);
                         printf("Client subscriptions: ");
                         printf("[%d, ", client_pairs[0].pid);
-                        for (int i = 0; i < client_pairs[client_topic_arr_size - 1].topic_size; i++)
+                        for (int i = 0; i < client_pairs[0].topic_size; i++)
                         {
                             if (i == 0)
                                 printf("%s", client_pairs[0].topics[i]);
