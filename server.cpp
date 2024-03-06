@@ -137,7 +137,6 @@ int main(void)
     // struct array init
     struct ClientTopics *client_pairs = NULL;
 
-
     // malloc for Client topic struct
     client_pairs = (ClientTopics *)malloc(sizeof(struct ClientTopics));
     if (client_pairs == NULL)
@@ -332,6 +331,20 @@ int main(void)
                         printf("]\n");
 
                         // Remember to free memory allocated by strdup
+                        free(data[0]);
+                    }
+                }
+
+                str_contain = strstr(buf, unsubscribe);
+                if (str_contain != NULL)
+                {
+                    char *token;
+                    char *data[1];
+
+                    token = strtok(buf + strlen("UNSUBSCRIBE") + 1, " ");
+                    if (token != NULL)
+                    {
+                        data[0] = strdup(token);
                         free(data[0]);
                     }
                 }
