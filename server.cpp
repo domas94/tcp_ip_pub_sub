@@ -121,6 +121,8 @@ int main(void)
     int rv;
     int numbytes;
     char buf[MAXDATASIZE];
+    char **topics = (char **)malloc(sizeof(char *));
+    int topics_size = 0;
 
     // CLIENT COMMANDS
     char disconnect[] = "DISCONNECT";
@@ -259,66 +261,70 @@ int main(void)
                     }
                     print_success("Closing connection");
                     break;
-}
+                }
 
-                    str_equal = strstr(buf, publish);
-                    if (str_equal != NULL)
+                str_equal = strstr(buf, publish);
+                if (str_equal != NULL)
+                {
+
+                    char *token;
+                    char *data[2];
+
+                    token = strtok(buf + strlen("PUBLISH") + 1, " ");
+                    if (token != NULL)
                     {
-
-                        char *token;
-                        char *strings[2];
-
-                        token = strtok(buf + strlen("PUBLISH") + 1, " ");
+                        data[0] = strdup(token);
+                        token = strtok(NULL, " ");
                         if (token != NULL)
                         {
-                            strings[0] = strdup(token);
-                            token = strtok(NULL, " ");
-                            if (token != NULL)
-                            {
-                                strings[1] = strdup(token);
-                                // Print the extracted strings
+                            data[1] = strdup(token);
 
-                                client_pairs[client_topic_arr_size - 1].topics = (char **)realloc(client_pairs[client_topic_arr_size - 1].topics, sizeof(char *) * client_pairs[client_topic_arr_size - 1].topic_size + 1); // Allocate memory for one string
-                                client_pairs[client_topic_arr_size - 1].topic_size++;
-                                if (client_pairs[client_topic_arr_size - 1].topics == NULL)
-                                {
-                                    fprintf(stderr, "Memory allocation failed\n");
-                                    free(client_pairs);
-                                    return 1;
-                                }
+                            topics_size++;
+                            topics = (char **)realloc(topics, sizeof(char *) * topics_size);
+                            topics[topics_size - 1] = (char *)malloc(strlen(data[0]) + 1);
+                            strcpy(topics[topics_size-1], data[0]);
 
-                                client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1] = (char *)realloc(client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1], strlen(strings[0]) + 1); // Allocate memory for the string
-                                if (client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1] == NULL)
-                                {
-                                    fprintf(stderr, "Memory allocation failed\n");
-                                    free(client_pairs[client_topic_arr_size - 1].topics);
-                                    free(client_pairs);
-                                    exit(1);
-                                }
-                                strcpy(client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1], strings[0]);
-                                printf("[%d, \"%s\", \"%s\"]\n", client_pairs[0].pid, client_pairs[0].topics[0], client_pairs[0].topics[1]);
+                            // client_pairs[client_topic_arr_size - 1].topics = (char **)realloc(client_pairs[client_topic_arr_size - 1].topics, sizeof(char *) * client_pairs[client_topic_arr_size - 1].topic_size + 1); // Allocate memory for one string
+                            // client_pairs[client_topic_arr_size - 1].topic_size++;
+                            // if (client_pairs[client_topic_arr_size - 1].topics == NULL)
+                            // {
+                            //     fprintf(stderr, "Memory allocation failed\n");
+                            //     free(client_pairs);
+                            //     return 1;
+                            // }
 
-                                // Remember to free memory allocated by strdup
-                                free(strings[0]);
-                                free(strings[1]);
-                            }
+                            // client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1] = (char *)realloc(client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1], strlen(strings[0]) + 1); // Allocate memory for the string
+                            // if (client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1] == NULL)
+                            // {
+                            //     fprintf(stderr, "Memory allocation failed\n");
+                            //     free(client_pairs[client_topic_arr_size - 1].topics);
+                            //     free(client_pairs);
+                            //     exit(1);
+                            // }
+                            // strcpy(client_pairs[client_topic_arr_size - 1].topics[client_pairs[client_topic_arr_size - 1].topic_size - 1], strings[0]);
+                            // printf("[%d, \"%s\", \"%s\"]\n", client_pairs[0].pid, client_pairs[0].topics[0], client_pairs[0].topics[1]);
+
+                            // // Remember to free memory allocated by strdup
+                            // free(strings[0]);
+                            // free(strings[1]);
                         }
                     }
-                    if (send(new_fd, buf, strlen(buf), 0) == -1)
-                        perror("send");
                 }
+                if (send(new_fd, buf, strlen(buf), 0) == -1)
+                    perror("send");
             }
-            else
-            {
-                print_err("Fork fail");
-            }
-            printf("Closing fd %d\n", new_fd);
-            close(new_fd); // parent doesn't need this
         }
-        printf("Closing sockfd %d\n", sockfd);
-        close(sockfd); // child doesn't need the listener
-        // free(client_pairs[0].topics[0]);
-        // free(client_pairs[0].topics);
-        // free(client_pairs);
-        return 0;
+        else
+        {
+            print_err("Fork fail");
+        }
+        printf("Closing fd %d\n", new_fd);
+        close(new_fd); // parent doesn't need this
     }
+    printf("Closing sockfd %d\n", sockfd);
+    close(sockfd); // child doesn't need the listener
+    // free(client_pairs[0].topics[0]);
+    // free(client_pairs[0].topics);
+    // free(client_pairs);
+    return 0;
+}
