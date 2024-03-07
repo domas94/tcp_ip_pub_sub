@@ -289,52 +289,6 @@ int main(void)
 
                     strcpy(buf, buf_cpy);
                 }
-
-                str_contain = strstr(buf, subscribe);
-                if (str_contain != NULL)
-                {
-                    char *token;
-                    char *data[1];
-
-                    token = strtok(buf + strlen("SUBSCRIBE") + 1, " ");
-                    if (token != NULL)
-                    {
-                        data[0] = strdup(token);
-
-                        client_pairs[0].topics = (char **)realloc(client_pairs[0].topics, sizeof(char *) * client_pairs[0].topic_size + 1); // Allocate memory for one string
-                        client_pairs[0].topic_size++;
-                        if (client_pairs[0].topics == NULL)
-                        {
-                            fprintf(stderr, "Memory allocation failed\n");
-                            free(client_pairs);
-                            return 1;
-                        }
-
-                        client_pairs[0].topics[client_pairs[0].topic_size - 1] = (char *)realloc(client_pairs[0].topics[client_pairs[0].topic_size - 1], strlen(data[0]) + 1); // Allocate memory for the string
-                        if (client_pairs[0].topics[client_pairs[0].topic_size - 1] == NULL)
-                        {
-                            fprintf(stderr, "Memory allocation failed\n");
-                            free(client_pairs[0].topics);
-                            free(client_pairs);
-                            exit(1);
-                        }
-                        strcpy(client_pairs[0].topics[client_pairs[0].topic_size - 1], data[0]);
-                        printf("Client subscriptions: ");
-                        printf("[%d, ", client_pairs[0].pid);
-                        for (int i = 0; i < client_pairs[0].topic_size; i++)
-                        {
-                            if (i == 0)
-                                printf("%s", client_pairs[0].topics[i]);
-                            else
-                                printf(", %s", client_pairs[0].topics[i]);
-                        }
-                        printf("]\n");
-
-                        // Remember to free memory allocated by strdup
-                        free(data[0]);
-                    }
-                }
-
                 str_contain = strstr(buf, unsubscribe);
                 if (str_contain != NULL)
                 {
@@ -344,10 +298,102 @@ int main(void)
                     token = strtok(buf + strlen("UNSUBSCRIBE") + 1, " ");
                     if (token != NULL)
                     {
+
+                        int index = -1;
                         data[0] = strdup(token);
-                        free(data[0]);
+                        for (int i = 0; i < client_pairs[0].topic_size; i++)
+                        {
+
+                            int result = strcmp(client_pairs[0].topics[i], data[0]);
+                            if (result == 0)
+                                index = i;
+                        }
+                        if (index != -1)
+                        {
+                            for (int i = index; i < client_pairs[0].topic_size - 1; i++)
+                            {
+                                client_pairs[0].topics[i] = (char *)realloc(client_pairs[0].topics[i], strlen(client_pairs[0].topics[i+1]) + 1); // Allocate memory for the string
+                                if (client_pairs[0].topics[i] == NULL)
+                                {
+                                    fprintf(stderr, "Memory allocation failed\n");
+                                    free(client_pairs[0].topics);
+                                    free(client_pairs);
+                                    exit(1);
+                                }
+                                strcpy(client_pairs[0].topics[i], client_pairs[0].topics[i + 1]);
+                            }
+
+                            // Resize the array
+                            client_pairs[0].topics = (char **)realloc(client_pairs[0].topics, (client_pairs[0].topic_size) * sizeof(char *));
+                            if (client_pairs[0].topics == NULL && client_pairs[0].topic_size > 1)
+                            {
+                                // Memory reallocation failed, but original array still exists
+                            }
+                            client_pairs[0].topic_size = client_pairs[0].topic_size - 1;
+                        }
+                        printf("Client subscriptions: ");
+                        printf("[%d, ", client_pairs[0].pid);
+                        for (int i = 0; i < client_pairs[0].topic_size; i++)
+                        {
+                            if (i == 0)
+                                printf("%s", client_pairs[0].topics[i]);
+                            else
+                                printf(", %s", client_pairs[0].topics[i]);
+                            int result = strcmp(client_pairs[0].topics[i], data[0]);
+                            if (result == 0)
+                                index = i;
+                        }
+                        printf("]\n");
+                    }
+                    free(data[0]);
+                }
+                else
+                {
+                    str_contain = strstr(buf, subscribe);
+                    if (str_contain != NULL)
+                    {
+                        char *token;
+                        char *data[1];
+
+                        token = strtok(buf + strlen("SUBSCRIBE") + 1, " ");
+                        if (token != NULL)
+                        {
+                            data[0] = strdup(token);
+                            client_pairs[0].topics = (char **)realloc(client_pairs[0].topics, sizeof(char *) * client_pairs[0].topic_size + 1); // Allocate memory for one string
+                            client_pairs[0].topic_size++;
+                            if (client_pairs[0].topics == NULL)
+                            {
+                                fprintf(stderr, "Memory allocation failed\n");
+                                free(client_pairs);
+                                return 1;
+                            }
+
+                            client_pairs[0].topics[client_pairs[0].topic_size - 1] = (char *)realloc(client_pairs[0].topics[client_pairs[0].topic_size - 1], strlen(data[0]) + 1); // Allocate memory for the string
+                            if (client_pairs[0].topics[client_pairs[0].topic_size - 1] == NULL)
+                            {
+                                fprintf(stderr, "Memory allocation failed\n");
+                                free(client_pairs[0].topics);
+                                free(client_pairs);
+                                exit(1);
+                            }
+                            strcpy(client_pairs[0].topics[client_pairs[0].topic_size - 1], data[0]);
+                            printf("Client subscriptions: ");
+                            printf("[%d, ", client_pairs[0].pid);
+                            for (int i = 0; i < client_pairs[0].topic_size; i++)
+                            {
+                                if (i == 0)
+                                    printf("%s", client_pairs[0].topics[i]);
+                                else
+                                    printf(", %s", client_pairs[0].topics[i]);
+                            }
+                            printf("]\n");
+
+                            // Remember to free memory allocated by strdup
+                            free(data[0]);
+                        }
                     }
                 }
+
                 if (send(new_fd, buf, strlen(buf), 0) == -1)
                     perror("send");
             }
