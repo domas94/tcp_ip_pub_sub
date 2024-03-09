@@ -27,6 +27,7 @@
 #define MAXDATASIZE 100
 
 //////////////////////// STRUCT
+
 struct ClientTopics
 {
     int pid;
@@ -34,7 +35,8 @@ struct ClientTopics
     char **topics;
 };
 
-//////////////////////// FUNC
+//////////////////////// FUNCTIONS
+
 struct ClientTopics *findPid(struct ClientTopics *arr, int size)
 {
     for (int i = 0; i < size; i++)
@@ -85,7 +87,6 @@ int check_message_len(char *buf)
     return 0;
 }
 
-//////////////////////// TCP IP FUNC
 void sigchld_handler(int s)
 {
     // waitpid() might overwrite errno, so we save and restore it:
@@ -128,7 +129,7 @@ int main(void)
     char subscribe[] = "SUBSCRIBE";
     char unsubscribe[] = "UNSUBSCRIBE";
 
-    // when comparing client message with command
+    // to compare client messages
     char *str_contain;
 
     // process pid
@@ -145,6 +146,7 @@ int main(void)
         return 1;
     }
 
+    // TCP/IP configuration
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -220,7 +222,8 @@ int main(void)
         }
         inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
         printf("server: got connection from %s\n", s);
-        // child process
+        // create child process
+        // return 0 if process is created, -1 for errors and process ID
         int retval = fork();
         if (retval != 0)
         {
@@ -241,12 +244,13 @@ int main(void)
                 }
 
                 buf[numbytes] = '\0';
-                printf("%d server: received '%s%s%s'\n", client_pairs[0].pid, GREEN, buf, END);
+                printf("client pid: %d - message received: '%s%s%s'\n", client_pairs[0].pid, GREEN, buf, END);
                 if (strlen(buf) == 0)
                 {
                     print_err("Empty message received, closing connection\n");
                     break;
                 }
+                // DISCONNECT
                 str_contain = strstr(buf, disconnect);
                 if (str_contain != NULL)
                 {
@@ -257,7 +261,7 @@ int main(void)
                     print_success("Closing connection");
                     break;
                 }
-
+                // PUBLISH
                 str_contain = strstr(buf, publish);
                 if (str_contain != NULL)
                 {
@@ -289,6 +293,7 @@ int main(void)
 
                     strcpy(buf, buf_cpy);
                 }
+                // UNSUBSCRIBE
                 str_contain = strstr(buf, unsubscribe);
                 if (str_contain != NULL)
                 {
@@ -349,6 +354,7 @@ int main(void)
                 }
                 else
                 {
+                    // SUBSCRIBE
                     str_contain = strstr(buf, subscribe);
                     if (str_contain != NULL)
                     {
@@ -408,9 +414,9 @@ int main(void)
     printf("Closing sockfd %d\n", sockfd);
     close(sockfd); // child doesn't need the listener
 
-    // release all client pair memory
-    // free(client_pairs[0].topics[0]);
-    // free(client_pairs[0].topics);
-    // free(client_pairs);
+    // free client struct from the memory
+    free(client_pairs[0].topics[0]);
+    free(client_pairs[0].topics);
+    free(client_pairs);
     return 0;
 }
