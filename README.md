@@ -75,13 +75,10 @@ form "[Message] Topic: <topic name> Data: <data>". For writing purposes, the fol
 ---
 
 1. Run the server app `$ ./server`
-
-
 ![server start](1.png)
 
 2. Run the client app `$ ./client`
 3. Type `CONNECT 3490 localhost` to the client console 
-
 ![client start](2.png)
 
 application
@@ -90,7 +87,6 @@ application
 ![connection success](3.png)
 
 5. Now we can subscribe to different topics
-
 ![client subscribe](4.png)
 
 6. And also unsubscribe
@@ -98,3 +94,12 @@ application
 
 7. Since the PUBLISH feature is not yet fully implemented, the server will only send back the data portion of the PUBLISH message to indicate that it recognizes subscribed topics.
 ![client publish](6.png)
+8. To close the connection, type DISCONNECT
+![client disconnect](7.png)
+
+### Multiple connections
+
+It is possible to connect multiple clients at the same time. Each client can be recognized by its process ID which is assigned to each  
+![multiple client connections](8.png)
+
+In this example, we can see that client 1 has a PID of 72632, while client 2 has a PID of 746.
