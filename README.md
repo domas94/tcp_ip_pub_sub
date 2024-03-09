@@ -41,99 +41,60 @@ And then the client application:
 $ g++ client.cpp -o client
 ```
 
+### Description
+
+#### Server
+
+The server application accepts client connections on the selected port and prints diagnostic messages (connecting/disconnecting
+the client (CONNECT/DISCONNECT), receiving and sending messages (PUBLISH/SUBSCRIBE).
+Server applications make sure that PUBLISH messages on a certain topic are forwarded only to clients who are subscribed to that
+topic (SUBSCRIBE). For this reason, the server application must keep records of which clients are subscribed to which topic in
+order to correctly redirect messages. The server application execution port is passed as the first argument when starting the
+application. After starting, the server application immediately opens a TCP server and accepts connections from new clients.
+
+#### Client
+
+The client application connects to the server application and serves to send and receive messages from specific topics.
+```shell
+Usage: CLIENT COMMANDS:
+
+* CONNECT <port> <client name> - Starts a connection to an arbitrary server application
+* DISCONNECT – Disconnecting from the currently connected server application
+* PUBLISH <topic name> <data> - Sends an arbitrary (ASCII) message to a specific topic 
+* SUBSCRIBE <topic name> - The client subscribes to a specific topic
+* UNSUBSCRIBE <topic name> - The client disconnects from the specific topic
+```
+
+If at any time the client receives a message from a subscribed topic, it immediately prints it to the console in the following
+form "[Message] Topic: <topic name> Data: <data>". For writing purposes, the following things can be assumed:
+• The name of the topic is in ASCII format and never contains a space
+• Data to be sent and received are always in ASCII format
+• Delimitation of messages on the TCP/IP layer can be performed with a predefined character
+
 ### Usage
 ---
 
 1. Run the server app `$ ./server`
+
+
+![server start](1.png)
+
 2. Run the client app `$ ./client`
+3. Type `CONNECT 3490 localhost` to the client console 
 
-`shallow-backup` was built with scripting in mind. Every feature that's supported in the interactive program is supported with command line arguments.
+![client start](2.png)
 
-```shell
-Usage: shallow-backup [OPTIONS]
+application
 
-  Easily back up installed packages, dotfiles, and more.
-  You can edit which files are backed up in ~/.shallow-backup.
+4. If the connection was successful, we can now send messages to the server and receive them back
+![connection success](3.png)
 
-  Written by Aaron Lichtman (@alichtman).
+5. Now we can subscribe to different topics
 
-Options:
+![client subscribe](4.png)
 
-  --add-dot TEXT               Add a dotfile or dotfolder to config by path.
-  --backup-all                 Full back up.
-  --backup-configs             Back up app config files.
-  --backup-dots                Back up dotfiles.
-  --backup-fonts               Back up installed fonts.
-  --backup-packages            Back up package libraries.
-  --delete-config              Delete config file.
-  --destroy-backup             Delete backup directory.
-  --dry-run                    Don't backup or reinstall any files, just give
-                               verbose output.
+6. And also unsubscribe
+![client unsubscribe](5.png)
 
-  --new-path TEXT              Input a new back up directory path.
-  --no-new-backup-path-prompt  Skip setting new back up directory path prompt.
-  --no-splash                  Don't display splash screen.
-  --reinstall-all              Full reinstallation.
-  --reinstall-configs          Reinstall configs.
-  --reinstall-dots             Reinstall dotfiles and dotfolders.
-  --reinstall-fonts            Reinstall fonts.
-  --reinstall-packages         Reinstall packages.
-  --remote TEXT                Set remote URL for the git repo.
-
-  --show                       Display config file.
-  -v, --version                Display version and author info.
-  -h, -help, --help            Show this message and exit.
-```
-
-
-
-
-### What can I back up?
----
-
-By default, `shallow-backup` backs these up.
-
-1. Dotfiles and dotfolders
-    * `.bashrc`
-    * `.bash_profile`
-    * `.gitconfig`
-    * `.pypirc`
-    * `.config/shallow-backup.conf`
-    * `.ssh/`
-    * `.vim/`
-    * `.zshrc`
-
-2. App Config Files
-    * Atom
-    * VSCode
-    * Sublime Text 2/3
-    * Terminal.app
-
-3. Installed Packages
-    * `brew` and `cask`
-    * `cargo`
-    * `gem`
-    * `pip`
-    * `pip3`
-    * `npm`
-    * `macports`
-    * `VSCode` Extensions
-    * `Sublime Text 2/3` Packages
-    * System Applications
-
-4. User installed `fonts`.
-
-### Configuration
-
-If you'd like to modify which files are backed up, you have to edit the `JSON` config file, located at `~/.config/shallow-backup.conf`. There are two ways to do this.
-
-1. Select the appropriate option in the CLI and follow the prompts.
-2. Open the file in a text editor and make your changes.
-
-Editing the file in a text editor will give you more control and be faster.
-
-
-
-
-
-
+7. Since the PUBLISH feature is not yet fully implemented, the server will only send back the data portion of the PUBLISH message to indicate that it recognizes subscribed topics.
+![client publish](6.png)
