@@ -67,9 +67,9 @@ Usage: CLIENT COMMANDS:
 
 If at any time the client receives a message from a subscribed topic, it immediately prints it to the console in the following
 form "[Message] Topic: <topic name> Data: <data>". For writing purposes, the following things can be assumed:
-• The name of the topic is in ASCII format and never contains a space
-• Data to be sent and received are always in ASCII format
-• Delimitation of messages on the TCP/IP layer can be performed with a predefined character
+* The name of the topic is in ASCII format and never contains a space
+* Data to be sent and received are always in ASCII format
+* Delimitation of messages on the TCP/IP layer can be performed with a predefined character
 
 ### Usage
 ---
